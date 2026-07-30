@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting Ketua OSIS SMAN 1 Makmur Jaya</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#0284c7',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <!-- Header & Navigasi -->
+    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-yellow-400 text-blue-900 font-extrabold rounded-lg flex items-center justify-center text-xl shadow">
+                    OSIS
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">E-Voting Pemilihan Ketua OSIS</h1>
+                    <p class="text-xs text-blue-200">SMK 17 AGUSTUS 1945 SURABAYA• Kuota Pemilih: 750 Siswa</p>
+                </div>
+            </div>
+            
+            <!-- Status Koneksi & User -->
+            <div class="flex items-center space-x-3 bg-blue-950/60 px-4 py-2 rounded-full border border-blue-700/50 text-xs">
+                <span id="auth-status-dot" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></span>
+                <span id="auth-status-text" class="font-medium">Menghubungkan ke Server...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigasi Tab -->
+    <div class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 flex justify-center sm:justify-start space-x-2">
+            <button id="tab-vote-btn" onclick="switchTab('vote')" class="py-3 px-6 font-semibold border-b-2 border-primary text-primary flex items-center gap-2 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Bilik Suara
+            </button>
+            <button id="tab-results-btn" onclick="switchTab('results')" class="py-3 px-6 font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                Hasil Real-Time
+            </button>
+        </div>
+    </div>
+
+    <!-- Konten Utama -->
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+
+        <!-- Banner Informasi Partisipasi -->
+        <div class="bg-gradient-to-r from-blue-900 to-indigo-800 rounded-2xl p-6 text-white shadow-md mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="space-y-1 text-center md:text-left">
+                <h2 class="text-2xl font-bold">Suara Anda Menentukan Masa Depan OSIS!</h2>
+                <p class="text-blue-100 text-sm">Gunakan hak pilih Anda dengan bijak, jujur, dan adil.</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl text-center min-w-[220px]">
+                <div class="text-xs text-blue-200 uppercase font-semibold tracking-wider">Total Partisipasi</div>
+                <div id="header-vote-count" class="text-3xl font-black mt-1">0 / 750</div>
+                <div class="w-full bg-blue-950/50 rounded-full h-2 mt-2 overflow-hidden">
+                    <div id="header-progress-bar" class="bg-yellow-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 1: BILIK SUARA -->
+        <section id="section-vote" class="space-y-6">
+
+            <!-- Banner jika sudah memilih -->
+            <div id="voted-alert" class="hidden bg-emerald-50 border border-emerald-300 text-emerald-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center font-bold text-2xl flex-shrink-0">
+                        ✓
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold">Terima Kasih! Suara Anda Telah Tercatat</h3>
+                        <p class="text-sm text-emerald-700">Anda telah berpartisipasi dalam Pemilihan Ketua OSIS tahun ini. Hasil lengkap dapat dipantau di tab Hasil Real-Time.</p>
+                    </div>
+                </div>
+                <button onclick="switchTab('results')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow transition">
+                    Lihat Hasil Langsung
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900">Daftar Pasangan Kandidat</h2>
+                    <p class="text-slate-500 text-sm">Klik tombol "Pilih Kandidat Ini" pada calon pilihan Anda.</p>
+                </div>
+            </div>
+
+            <!-- Grid Kandidat -->
+            <div id="candidates-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Di-render otomatis oleh JavaScript -->
+            </div>
+        </section>
+
+        <!-- TAB 2: HASIL REAL-TIME -->
+        <section id="section-results" class="hidden space-y-8">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900">Perolehan Suara Real-Time (Live Count)</h2>
+                    <p class="text-slate-500 text-sm">Data diperbarui secara terpusat dan langsung melalui Firebase Firestore.</p>
+                </div>
+
+                <!-- Ringkasan Statistik -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="text-xs font-semibold text-slate-500 uppercase">Total Pemilih Terdaftar</div>
+                        <div class="text-2xl font-bold text-slate-800 mt-1">750 Siswa</div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        <div class="text-xs font-semibold text-blue-600 uppercase">Suara Masuk</div>
+                        <div id="stat-total-votes" class="text-2xl font-bold text-blue-900 mt-1">0 Suara</div>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                        <div class="text-xs font-semibold text-emerald-600 uppercase">Persentase Partisipasi</div>
+                        <div id="stat-turnout" class="text-2xl font-bold text-emerald-900 mt-1">0%</div>
+                    </div>
+                </div>
+
+                <!-- Grafik Batang Kandidat -->
+                <div id="results-bars-container" class="space-y-6 pt-4">
+                    <!-- Di-render oleh JavaScript -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Konfirmasi Pemilihan -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 space-y-6 border border-slate-100 transform transition-all">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center mx-auto font-bold text-2xl">
+                    🗳️
+                </div>
+                <h3 class="text-2xl font-bold text-slate-900">Konfirmasi Suara</h3>
+                <p class="text-sm text-slate-500">Apakah Anda yakin ingin memberikan suara kepada:</p>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center">
+                <div id="modal-candidate-number" class="text-xs font-extrabold text-blue-600 uppercase tracking-widest">KANDIDAT 00</div>
+                <div id="modal-candidate-name" class="text-xl font-black text-blue-950 mt-1">Nama Kandidat</div>
+            </div>
+
+            <!-- Input NIS Opsional sebagai Verifikasi Tambahan -->
+            <div class="space-y-2">
+                <label for="voter-nis" class="block text-xs font-semibold text-slate-700 uppercase">Nomor Induk Siswa (NIS) / Kode Pemilih</label>
+                <input type="text" id="voter-nis" placeholder="Contoh: 10293" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none text-sm">
+                <p class="text-[11px] text-slate-400">Verifikasi NIS memastikan validitas suara Anda di sistem.</p>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeModal()" class="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">
+                    Batal
+                </button>
+                <button id="btn-submit-vote" onclick="submitVote()" class="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm shadow-md transition flex justify-center items-center gap-2">
+                    <span>Kirim Suara</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Notifikasi -->
+    <div id="toast-modal" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl z-50 flex items-center gap-3 hidden border border-slate-700">
+        <span id="toast-message" class="text-sm font-medium">Pesan notifikasi</span>
+    </div>
+
+    <!-- Firebase SDK Modular -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi & Inisialisasi Firebase
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'osis-election-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-project.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:demo"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Data Kandidat Ketua & Wakil OSIS
+        const candidates = [
+            {
+                id: 1,
+                name: 'Budi Santoso & Siti Rahma',
+                slogan: 'Maju Bersama, Hebat Bersama!',
+                visiMisi: 'Menciptakan lingkungan sekolah yang kreatif, inovatif, dan berakhlak mulia serta mengoptimalkan kegiatan ekstrakurikuler berbasis digital.',
+                color: 'from-blue-500 to-indigo-600',
+                btnColor: 'bg-blue-600 hover:bg-blue-700'
+            },
+            {
+                id: 2,
+                name: 'Citra Amelia & Ahmad Fauzi',
+                slogan: 'Suara Siswa, Prioritas Utama!',
+                visiMisi: 'Menjadikan OSIS sebagai wadah aspirasi siswa yang inklusif, transparan, dan aktif menyelenggarakan festival seni serta olahraga.',
+                color: 'from-emerald-500 to-teal-600',
+                btnColor: 'bg-emerald-600 hover:bg-emerald-700'
+            },
+            {
+                id: 3,
+                name: 'Dimas Wicaksono & Rizky Pratama',
+                slogan: 'Inovasi Tanpa Batas!',
+                visiMisi: 'Mendorong gerakan sekolah ramah lingkungan, digitalisasi program kerja OSIS, dan peningkatan kolaborasi antarkelas.',
+                color: 'from-amber-500 to-orange-600',
+                btnColor: 'bg-amber-600 hover:bg-amber-700'
+            }
+        ];
+
+        const TOTAL_VOTERS = 750;
+        let currentUser = null;
+        let selectedCandidateId = null;
+        let userHasVoted = false;
+        let votesData = {};
+
+        // 1. Autentikasi Pengguna
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Gagal melakukan autentikasi:", err);
+                showToast("Gagal terhubung ke server autentikasi.");
+            }
+        }
+
+        // Pantau status login & muat data Firestore
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-status-dot').className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
+                document.getElementById('auth-status-text').textContent = "Terhubung (Sistem Siap)";
+                
+                // Panggil listener data Firestore setelah autentikasi sukses
+                setupRealtimeListeners();
+            }
+        });
+
+        // 2. Listener Real-Time Firestore (Sesuai Aturan Jalur)
+        function setupRealtimeListeners() {
+            if (!currentUser) return;
+
+            // Koleksi Suara Publik sesuai RULE 1
+            const votesCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'votes');
+
+            onSnapshot(votesCollectionRef, (snapshot) => {
+                votesData = {};
+                candidates.forEach(c => votesData[c.id] = 0);
+                let totalVotes = 0;
+                userHasVoted = false;
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.candidateId && votesData[data.candidateId] !== undefined) {
+                        votesData[data.candidateId]++;
+                        totalVotes++;
+                    }
+
+                    // Cek apakah user aktif sudah memilih
+                    if (doc.id === currentUser.uid) {
+                        userHasVoted = true;
+                    }
+                });
+
+                // Perbarui Tampilan UI
+                updateUI(totalVotes);
+            }, (error) => {
+                console.error("Error mengambil data real-time:", error);
+                showToast("Gagal memperbarui data real-time.");
+            });
+        }
+
+        // 3. Perbarui Tampilan UI
+        function updateUI(totalVotes) {
+            // Update Banner Total Suara
+            document.getElementById('header-vote-count').textContent = `${totalVotes} / ${TOTAL_VOTERS}`;
+            const percentage = Math.min(100, ((totalVotes / TOTAL_VOTERS) * 100)).toFixed(1);
+            document.getElementById('header-progress-bar').style.width = `${percentage}%`;
+
+            // Update Statistik Tab Hasil
+            document.getElementById('stat-total-votes').textContent = `${totalVotes} Suara`;
+            document.getElementById('stat-turnout').textContent = `${percentage}%`;
+
+            // Tampilkan Alert jika sudah memilih
+            const votedAlert = document.getElementById('voted-alert');
+            if (userHasVoted) {
+                votedAlert.classList.remove('hidden');
+            } else {
+                votedAlert.classList.add('hidden');
+            }
+
+            renderCandidates();
+            renderResultsBars(totalVotes);
+        }
+
+        // 4. Render Kartu Kandidat
+        function renderCandidates() {
+            const container = document.getElementById('candidates-grid');
+            container.innerHTML = '';
+
+            candidates.forEach(c => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition duration-300 flex flex-col justify-between";
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="bg-gradient-to-r ${c.color} p-6 text-white text-center relative">
+                            <span class="absolute top-4 left-4 bg-white/20 backdrop-blur-md text-white font-extrabold text-xs px-3 py-1 rounded-full border border-white/30">
+                                NOMOR URUT 0${c.id}
+                            </span>
+                            <div class="w-24 h-24 bg-white/10 rounded-full mx-auto my-3 flex items-center justify-center text-4xl border-2 border-white/30 shadow-inner">
+                                👨‍🎓👩‍🎓
+                            </div>
+                            <h3 class="text-xl font-bold mt-2">${c.name}</h3>
+                            <p class="text-xs text-white/80 italic mt-1">"${c.slogan}"</p>
+                        </div>
+                        <div class="p-6 space-y-3 text-sm text-slate-600">
+                            <div>
+                                <strong class="text-slate-800 text-xs uppercase tracking-wider block mb-1">Visi & Misi Utama:</strong>
+                                <p class="leading-relaxed text-xs sm:text-sm bg-slate-50 p-3 rounded-xl border border-slate-100">${c.visiMisi}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <button onclick="openConfirmModal(${c.id})" 
+                            ${userHasVoted ? 'disabled' : ''} 
+                            class="w-full py-3.5 px-4 ${userHasVoted ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : `${c.btnColor} text-white shadow-md hover:shadow-lg`} font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2">
+                            <span>${userHasVoted ? 'Suara Telah Diberikan' : 'Pilih Kandidat Ini'}</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 5. Render Hasil Perolehan Suara
+        function renderResultsBars(totalVotes) {
+            const container = document.getElementById('results-bars-container');
+            container.innerHTML = '';
+
+            candidates.forEach(c => {
+                const count = votesData[c.id] || 0;
+                const percent = totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : '0.0';
+
+                const barItem = document.createElement('div');
+                barItem.className = "space-y-2";
+                barItem.innerHTML = `
+                    <div class="flex justify-between items-end text-sm">
+                        <div>
+                            <span class="font-bold text-slate-900">Paslon 0${c.id}: ${c.name}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-extrabold text-blue-900 text-base">${count} Suara</span>
+                            <span class="text-xs text-slate-500 font-semibold ml-1">(${percent}%)</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden border border-slate-200">
+                        <div class="bg-gradient-to-r ${c.color} h-4 rounded-full transition-all duration-700" style="width: ${percent}%"></div>
+                    </div>
+                `;
+                container.appendChild(barItem);
+            });
+        }
+
+        // 6. Fungsi Modal & Eksekusi Suara
+        window.openConfirmModal = function(candidateId) {
+            if (userHasVoted) {
+                showToast("Anda sudah memberikan suara sebelumnya!");
+                return;
+            }
+            selectedCandidateId = candidateId;
+            const candidate = candidates.find(c => c.id === candidateId);
+            
+            document.getElementById('modal-candidate-number').textContent = `KANDIDAT 0${candidate.id}`;
+            document.getElementById('modal-candidate-name').textContent = candidate.name;
+            document.getElementById('voter-nis').value = '';
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            selectedCandidateId = null;
+        };
+
+        window.submitVote = async function() {
+            if (!currentUser || !selectedCandidateId) return;
+
+            const nisInput = document.getElementById('voter-nis').value.trim();
+            const btnSubmit = document.getElementById('btn-submit-vote');
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<span class="animate-spin">⏳</span> Menyimpan...`;
+
+            try {
+                // Simpan dokumen suara ke Firestore menggunakan UID user
+                const voteDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'votes', currentUser.uid);
+                
+                await setDoc(voteDocRef, {
+                    candidateId: selectedCandidateId,
+                    nis: nisInput || 'Anonim',
+                    timestamp: new Date().toISOString()
+                });
+
+                showToast("Suara Anda berhasil disimpan!");
+                closeModal();
+            } catch (err) {
+                console.error("Gagal mengirim suara:", err);
+                showToast("Terjadi kesalahan saat menyimpan suara.");
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `<span>Kirim Suara</span>`;
+            }
+        };
+
+        // 7. Navigasi Tab
+        window.switchTab = function(tab) {
+            const voteSec = document.getElementById('section-vote');
+            const resultsSec = document.getElementById('section-results');
+            const voteBtn = document.getElementById('tab-vote-btn');
+            const resultsBtn = document.getElementById('tab-results-btn');
+
+            if (tab === 'vote') {
+                voteSec.classList.remove('hidden');
+                resultsSec.classList.add('hidden');
+                voteBtn.className = "py-3 px-6 font-semibold border-b-2 border-primary text-primary flex items-center gap-2 transition";
+                resultsBtn.className = "py-3 px-6 font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition";
+            } else {
+                voteSec.classList.add('hidden');
+                resultsSec.classList.remove('hidden');
+                resultsBtn.className = "py-3 px-6 font-semibold border-b-2 border-primary text-primary flex items-center gap-2 transition";
+                voteBtn.className = "py-3 px-6 font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition";
+            }
+        };
+
+        // Toast Notification Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast-modal');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+
+        // Jalankan Inisialisasi Auth
+        initAuth();
+    </script>
+</body>
+</html>
+
+```
